@@ -5,7 +5,14 @@ fn index() -> &'static str {
     "Hello, World!"
 }
 
-#[launch]
-pub fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+pub fn rocket() -> Rocket<Build> {
+    build().mount("/", routes![index])
+}
+
+#[cfg(not(test))]
+fn main() {
+    if let Err(e) = rocket::execute(rocket().launch()) {
+        eprintln!("Error: {:?}", e);
+        std::process::exit(1);
+    }
 }
