@@ -13,6 +13,6 @@ jobs:
         with:
           toolchain: stable
       - name: Build
-        run: cargo build --verbose
+        run: cargo build
       - name: Test
-        run: cargo test --verbose
+        run: cargo test
