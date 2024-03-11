@@ -1,52 +1,54 @@
 use assert2::assert;
 use rstest::{fixture, rstest};
-use rocket::local::blocking::Client;
+use rocket::{http::ContentType, local::blocking::Client};
 use rocket::http::Status;
-use rocket::serde::Deserialize;
 
 #[path = "../src/main.rs"]
 mod main;
 
+#[path = "../src/model.rs"]
+mod model;
+
 use main::rocket;
+use model::{User, Account, Money};
 
 
 struct TestClient {
     client: Client,
+    default_user: User,
 }
-
-#[derive(Deserialize)]
-struct AccountIDResponse {
-    account_id: AccountID,
-}
-
-
-#[derive(Deserialize)]
-struct BalanceResponse {
-    account_id: AccountID,
-    balance_amount: u64,
-    balance_currency: String,
-}
-
-
-type AccountID = u64;
 
 
 impl TestClient {
     fn new() -> Self {
         let client = Client::tracked(rocket()).expect("valid rocket instance");
-        TestClient { client }
+        let res = client.post("/api/user")
+            .header(ContentType::JSON)
+            .body(r#"{"first_name": "John", "last_name": "Doe"}"#)
+            .dispatch();
+        assert!(res.status() == Status::Ok);
+        let new_user = res.into_json::<User>().unwrap();
+
+        TestClient {
+            client: client,
+            default_user: new_user,
+        }
     }
 
-    fn create_account(&self) -> AccountID {
-        let response = self.client.get("/api/create").dispatch();
-        assert!(response.status() == Status::Ok);
-        response.into_json::<AccountIDResponse>().unwrap().account_id
+    fn create_account(&self) -> Account {
+        let account = Account::create(self.default_user.id.expect("or else"));
+        let res = self.client.post("/api/account")
+            .header(ContentType::JSON)
+            .json(&account)
+            .dispatch();
+        assert!(res.status() == Status::Ok);
+        res.into_json::<Account>().unwrap()
     }
 
-    fn balance_of(&self, account_id: AccountID) -> u64 {
-        let response = self.client.get(format!("/api/balance/{}", account_id)).dispatch();
+    fn balance_of(&self, account: &Account) -> Money {
+        let response = self.client.get(format!("/api/account/{}", account.id.expect("or else"))).dispatch();
         assert!(response.status() == Status::Ok);
-        response.into_json::<BalanceResponse>().unwrap().balance_amount
+        response.into_json::<Account>().unwrap().balance
     }
 }
 
@@ -56,9 +58,10 @@ fn client() -> TestClient {
     TestClient::new()
 }
 
+
 #[rstest]
 fn newly_created_accounts_are_empty(client: TestClient) {
-    let account_id = client.create_account();
-    let account_balance = client.balance_of(account_id);
-    assert!(account_balance == 0);
+    let account = client.create_account();
+    let account_balance = client.balance_of(&account);
+    assert!(account_balance.amount == 0);
 }
