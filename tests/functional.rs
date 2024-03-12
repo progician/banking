@@ -50,6 +50,13 @@ impl TestClient {
         assert!(response.status() == Status::Ok);
         response.into_json::<Account>().unwrap().balance
     }
+
+
+    fn user_for(&self, user_id: uuid::Uuid) -> User {
+        let response = self.client.get(format!("/api/user/{}", user_id)).dispatch();
+        assert!(response.status() == Status::Ok);
+        response.into_json::<User>().unwrap()
+    }
 }
 
 
@@ -64,4 +71,14 @@ fn newly_created_accounts_are_empty(client: TestClient) {
     let account = client.create_account();
     let account_balance = client.balance_of(&account);
     assert!(account_balance.amount == 0);
+}
+
+
+#[rstest]
+fn account_holder_can_be_identified(client: TestClient) {
+    let account = client.create_account();
+    let account_holder_user = client.user_for(account.account_holder);
+
+    assert!(account_holder_user.first_name == "John");
+    assert!(account_holder_user.last_name == "Doe");
 }
