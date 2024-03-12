@@ -1,6 +1,8 @@
 use rocket::*;
-use rocket::response::status::BadRequest;
+use rocket::response::status::{BadRequest, NotFound};
 use rocket::serde::json::Json;
+
+use uuid::Uuid;
 
 mod model;
 
@@ -23,12 +25,11 @@ fn create_user(state: &State<model::Model>, user: Json<model::User>) -> Result<J
 
 
 #[get("/api/user/<user_id>", format = "json")]
-fn get_user(user_id: &str) -> Result<Json<model::User>, BadRequest<String>> {
-    Ok(model::User {
-        id: Some(uuid::Uuid::nil()),
-        first_name: String::new(),
-        last_name: String::new(),
-    }.into())
+fn get_user(state: &State<model::Model>, user_id: &str) -> Result<Json<model::User>, NotFound<String>> {
+    match state.users.read().unwrap().get(&Uuid::parse_str(user_id).unwrap()) {
+        Some(user) => { Ok(user.clone().into()) },
+        None => { Err(NotFound(format!("user {} does not exist", user_id))) },
+    }
 }
 
 
