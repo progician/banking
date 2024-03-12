@@ -25,6 +25,16 @@ fn create_user(user: Json<model::User>) -> Result<Json<model::User>, BadRequest<
 }
 
 
+#[get("/api/user/<user_id>", format = "json")]
+fn get_user(user_id: String) -> Result<Json<model::User>, BadRequest<String>> {
+    Ok(model::User {
+        id: Some(uuid::Uuid::nil()),
+        first_name: String::new(),
+        last_name: String::new(),
+    }.into())
+}
+
+
 #[post("/api/account", format = "json", data = "<account>")]
 fn create_account(account: Json<model::Account>) -> Result<Json<model::Account>, BadRequest<String>> {
     if account.id.is_some() {
@@ -60,6 +70,7 @@ fn get_account(account: String) -> Result<Json<model::Account>, BadRequest<Strin
 pub fn rocket() -> Rocket<Build> {
     build().mount("/", routes![
         create_user,
+        get_user,
         create_account,
         get_account
     ])
