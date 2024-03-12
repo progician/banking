@@ -26,7 +26,7 @@ fn create_user(user: Json<model::User>) -> Result<Json<model::User>, BadRequest<
 
 
 #[get("/api/user/<user_id>", format = "json")]
-fn get_user(user_id: String) -> Result<Json<model::User>, BadRequest<String>> {
+fn get_user(user_id: &str) -> Result<Json<model::User>, BadRequest<String>> {
     Ok(model::User {
         id: Some(uuid::Uuid::nil()),
         first_name: String::new(),
@@ -72,7 +72,9 @@ pub fn rocket() -> Rocket<Build> {
         create_user,
         get_user,
         create_account,
-        get_account
+        get_account,
+
+        index,
     ])
 }
 
