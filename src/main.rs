@@ -1,6 +1,8 @@
 use rocket::*;
-use rocket::response::status::BadRequest;
+use rocket::response::status::{BadRequest, NotFound};
 use rocket::serde::json::Json;
+
+use uuid::Uuid;
 
 mod model;
 
@@ -11,16 +13,22 @@ fn index() -> &'static str {
 
 
 #[post("/api/user", format = "json", data = "<user>")]
-fn create_user(user: Json<model::User>) -> Result<Json<model::User>, BadRequest<String>> {
+fn create_user(state: &State<model::Model>, user: Json<model::User>) -> Result<Json<model::User>, BadRequest<String>> {
     if user.id.is_some() {
         Err(BadRequest("id must not be provided".to_string()))
     }
     else {
-        Ok(Json(model::User {
-            id: Some(uuid::Uuid::new_v4()),
-            first_name: user.first_name.clone(),
-            last_name: user.last_name.clone(),
-        }))
+        let new_user = state.new_user(user.first_name.clone(), user.last_name.clone());
+        Ok(new_user.into())
+    }
+}
+
+
+#[get("/api/user/<user_id>", format = "json")]
+fn get_user(state: &State<model::Model>, user_id: &str) -> Result<Json<model::User>, NotFound<String>> {
+    match state.users.read().unwrap().get(&Uuid::parse_str(user_id).unwrap()) {
+        Some(user) => { Ok(user.clone().into()) },
+        None => { Err(NotFound(format!("user {} does not exist", user_id))) },
     }
 }
 
@@ -58,11 +66,16 @@ fn get_account(account: String) -> Result<Json<model::Account>, BadRequest<Strin
 
 
 pub fn rocket() -> Rocket<Build> {
-    build().mount("/", routes![
-        create_user,
-        create_account,
-        get_account
-    ])
+    build()
+        .manage(model::Model::new())
+        .mount("/", routes![
+            create_user,
+            get_user,
+            create_account,
+            get_account,
+
+            index,
+        ])
 }
 
 #[cfg(not(test))]
