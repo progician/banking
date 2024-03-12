@@ -11,16 +11,13 @@ fn index() -> &'static str {
 
 
 #[post("/api/user", format = "json", data = "<user>")]
-fn create_user(user: Json<model::User>) -> Result<Json<model::User>, BadRequest<String>> {
+fn create_user(state: &State<model::Model>, user: Json<model::User>) -> Result<Json<model::User>, BadRequest<String>> {
     if user.id.is_some() {
         Err(BadRequest("id must not be provided".to_string()))
     }
     else {
-        Ok(Json(model::User {
-            id: Some(uuid::Uuid::new_v4()),
-            first_name: user.first_name.clone(),
-            last_name: user.last_name.clone(),
-        }))
+        let new_user = state.new_user(user.first_name.clone(), user.last_name.clone());
+        Ok(new_user.into())
     }
 }
 
@@ -68,14 +65,16 @@ fn get_account(account: String) -> Result<Json<model::Account>, BadRequest<Strin
 
 
 pub fn rocket() -> Rocket<Build> {
-    build().mount("/", routes![
-        create_user,
-        get_user,
-        create_account,
-        get_account,
+    build()
+        .manage(model::Model::new())
+        .mount("/", routes![
+            create_user,
+            get_user,
+            create_account,
+            get_account,
 
-        index,
-    ])
+            index,
+        ])
 }
 
 #[cfg(not(test))]

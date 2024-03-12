@@ -1,8 +1,9 @@
 use std::collections::HashMap;
+use std::sync::RwLock;
 use rocket::serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<Uuid>,
@@ -51,6 +52,29 @@ impl Account {
 
 
 pub struct Model {
-    pub users: HashMap<Uuid, User>,
-    pub accounts: HashMap<Uuid, Account>,
+    pub users: RwLock<HashMap<Uuid, User>>,
+    pub accounts: RwLock<HashMap<Uuid, Account>>,
+}
+
+
+impl Model {
+    pub fn new() -> Self {
+        Model {
+            users: RwLock::new(HashMap::new()),
+            accounts: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub fn new_user(&self, first_name: String, last_name: String) -> User {
+        let id = uuid::Uuid::new_v4();
+        let new_user_entry = User {
+            id: Some(id.clone()),
+            first_name: first_name,
+            last_name: last_name,
+        };
+
+        let mut unlocked_users = self.users.write().unwrap();
+        unlocked_users.insert(id, new_user_entry.clone());
+        return new_user_entry;
+    }
 }
