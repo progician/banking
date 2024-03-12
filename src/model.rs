@@ -23,7 +23,7 @@ impl User {
 }
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct Money {
     pub amount: u64,
     pub currency: String,
@@ -49,6 +49,24 @@ impl Account {
         }
     }
 }
+
+
+
+#[derive(Serialize, Deserialize)]
+pub struct Deposit {
+    pub account_id: Uuid,
+    pub deposit_value: Money,
+}
+
+impl Deposit {
+    pub fn new(account_id: &Uuid, deposit_value: Money) -> Deposit {
+        Deposit {
+            account_id: account_id.clone(),
+            deposit_value: deposit_value,
+        }
+    }
+}
+
 
 
 pub struct Model {
