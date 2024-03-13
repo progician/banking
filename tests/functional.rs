@@ -3,14 +3,8 @@ use rstest::{fixture, rstest};
 use rocket::{http::ContentType, local::blocking::Client};
 use rocket::http::Status;
 
-#[path = "../src/main.rs"]
-mod main;
-
-#[path = "../src/model.rs"]
-mod model;
-
-use main::rocket;
-use model::{Account, Deposit, Money, User};
+use banking::routing::rocket;
+use banking::model::{Account, Deposit, Money, User};
 
 
 struct TestClient {

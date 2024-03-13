@@ -12,17 +12,6 @@ pub struct User {
 }
 
 
-impl User {
-    pub fn create(first_name: String, last_name: String) -> User {
-        User {
-            id: None,
-            first_name,
-            last_name,
-        }
-    }
-}
-
-
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct Money {
     pub amount: u64,
