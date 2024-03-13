@@ -12,25 +12,14 @@ pub struct User {
 }
 
 
-impl User {
-    pub fn create(first_name: String, last_name: String) -> User {
-        User {
-            id: None,
-            first_name,
-            last_name,
-        }
-    }
-}
-
-
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct Money {
     pub amount: u64,
     pub currency: String,
 }
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Account {
     pub id: Option<Uuid>,
     pub account_holder: Uuid,
@@ -48,7 +37,36 @@ impl Account {
             },
         }
     }
+
+    pub fn new_with_id(account_holder: Uuid) -> Account {
+        Account {
+            id: Some(Uuid::new_v4()),
+            account_holder: account_holder,
+            balance: Money {
+                amount: 0,
+                currency: "USD".to_string(),
+            },
+        }
+    }
 }
+
+
+
+#[derive(Serialize, Deserialize)]
+pub struct Deposit {
+    pub account_id: Uuid,
+    pub deposit_value: Money,
+}
+
+impl Deposit {
+    pub fn new(account_id: &Uuid, deposit_value: Money) -> Deposit {
+        Deposit {
+            account_id: account_id.clone(),
+            deposit_value: deposit_value,
+        }
+    }
+}
+
 
 
 pub struct Model {
@@ -76,5 +94,21 @@ impl Model {
         let mut unlocked_users = self.users.write().unwrap();
         unlocked_users.insert(id, new_user_entry.clone());
         return new_user_entry;
+    }
+
+    pub fn new_account(&self, account_holder: Uuid) -> Result<Account, String> {
+        self.users.read().unwrap().get(&account_holder).ok_or("account holder not found")?;
+
+        let new_account = Account::new_with_id(account_holder);
+        let mut unlocked_accounts = self.accounts.write().unwrap();
+        unlocked_accounts.insert(new_account.id.clone().unwrap(), new_account.clone());
+        return Ok(new_account);
+    }
+
+    pub fn apply_deposit(&self, deposit: Deposit) -> Result<Account, String> {
+        let mut unlocked_accounts = self.accounts.write().unwrap();
+        let account = unlocked_accounts.get_mut(&deposit.account_id).ok_or("account not found")?;
+        account.balance.amount += deposit.deposit_value.amount;
+        Ok(account.clone())
     }
 }

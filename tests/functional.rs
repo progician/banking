@@ -3,14 +3,8 @@ use rstest::{fixture, rstest};
 use rocket::{http::ContentType, local::blocking::Client};
 use rocket::http::Status;
 
-#[path = "../src/main.rs"]
-mod main;
-
-#[path = "../src/model.rs"]
-mod model;
-
-use main::rocket;
-use model::{User, Account, Money};
+use banking::routing::rocket;
+use banking::model::{Account, Deposit, Money, User};
 
 
 struct TestClient {
@@ -57,6 +51,15 @@ impl TestClient {
         assert!(response.status() == Status::Ok);
         response.into_json::<User>().unwrap()
     }
+
+    fn deposit(&self, account: &Account, deposit_value: Money) -> Account {
+        let response = self.client.post("/api/deposit")
+            .header(ContentType::JSON)
+            .json(&Deposit::new(&account.id.unwrap(), deposit_value))
+            .dispatch();
+        assert!(response.status() == Status::Ok);
+        response.into_json::<Account>().unwrap()
+    }
 }
 
 
@@ -81,4 +84,18 @@ fn account_holder_can_be_identified(client: TestClient) {
 
     assert!(account_holder_user.first_name == "John");
     assert!(account_holder_user.last_name == "Doe");
+}
+
+
+#[rstest]
+fn deposit_affects_balance(client: TestClient) {
+    let account = client.create_account();
+
+    let deposit_value = Money {
+        amount: 10,
+        currency: "USD".to_string(),
+    };
+
+    let account_after_deposit = client.deposit(&account, deposit_value.clone());
+    assert!(account_after_deposit.balance == deposit_value);
 }
