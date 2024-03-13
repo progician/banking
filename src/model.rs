@@ -19,7 +19,7 @@ pub struct Money {
 }
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Account {
     pub id: Option<Uuid>,
     pub account_holder: Uuid,
@@ -83,5 +83,12 @@ impl Model {
         let mut unlocked_users = self.users.write().unwrap();
         unlocked_users.insert(id, new_user_entry.clone());
         return new_user_entry;
+    }
+
+    pub fn apply_deposit(&self, deposit: Deposit) -> Result<Account, String> {
+        let mut unlocked_accounts = self.accounts.write().unwrap();
+        let account = unlocked_accounts.get_mut(&deposit.account_id).ok_or("account not found")?;
+        account.balance.amount += deposit.deposit_value.amount;
+        Ok(account.clone())
     }
 }

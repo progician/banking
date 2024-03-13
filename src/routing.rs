@@ -3,7 +3,7 @@ use rocket::response::status::{BadRequest, NotFound};
 use rocket::serde::json::Json;
 
 use uuid::Uuid;
-use crate::model::{Account, Model, Money, User};
+use crate::model::{Account, Deposit, Model, Money, User};
 
 #[get("/")]
 fn index() -> &'static str {
@@ -64,6 +64,14 @@ fn get_account(_account: String) -> Result<Json<Account>, BadRequest<String>> {
 }
 
 
+#[post("/api/deposit", format="json", data="<data>")]
+fn deposit(state: &State<Model>, data: Json<Deposit>) -> Result<Json<Account>, BadRequest<String>> {
+    state
+        .apply_deposit(data.into_inner())
+        .map(Json).map_err(|e| BadRequest(e))
+}
+
+
 pub fn rocket() -> Rocket<Build> {
     build()
         .manage(Model::new())
@@ -72,6 +80,8 @@ pub fn rocket() -> Rocket<Build> {
             get_user,
             create_account,
             get_account,
+
+            deposit,
 
             index,
         ])
