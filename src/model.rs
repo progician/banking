@@ -18,6 +18,22 @@ pub struct Money {
     pub currency: String,
 }
 
+impl Money {
+    pub fn new(amount: u64, currency: &str) -> Money {
+        Money {
+            amount: amount,
+            currency: currency.to_string(),
+        }
+    }
+
+    pub fn zero(currency: &str) -> Money {
+        Money {
+            amount: 0,
+            currency: currency.to_string(),
+        }
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Account {

@@ -91,11 +91,8 @@ fn account_holder_can_be_identified(client: TestClient) {
 fn deposit_affects_balance(client: TestClient) {
     let account = client.create_account();
 
-    let deposit_value = Money {
-        amount: 10,
-        currency: "USD".to_string(),
-    };
-
+    let deposit_value = Money::new(10, "USD");
     let account_after_deposit = client.deposit(&account, deposit_value.clone());
+
     assert!(account_after_deposit.balance == deposit_value);
 }
