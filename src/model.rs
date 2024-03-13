@@ -37,6 +37,17 @@ impl Account {
             },
         }
     }
+
+    pub fn new_with_id(account_holder: Uuid) -> Account {
+        Account {
+            id: Some(Uuid::new_v4()),
+            account_holder: account_holder,
+            balance: Money {
+                amount: 0,
+                currency: "USD".to_string(),
+            },
+        }
+    }
 }
 
 
@@ -83,6 +94,15 @@ impl Model {
         let mut unlocked_users = self.users.write().unwrap();
         unlocked_users.insert(id, new_user_entry.clone());
         return new_user_entry;
+    }
+
+    pub fn new_account(&self, account_holder: Uuid) -> Result<Account, String> {
+        self.users.read().unwrap().get(&account_holder).ok_or("account holder not found")?;
+
+        let new_account = Account::new_with_id(account_holder);
+        let mut unlocked_accounts = self.accounts.write().unwrap();
+        unlocked_accounts.insert(new_account.id.clone().unwrap(), new_account.clone());
+        return Ok(new_account);
     }
 
     pub fn apply_deposit(&self, deposit: Deposit) -> Result<Account, String> {

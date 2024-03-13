@@ -33,34 +33,26 @@ fn get_user(state: &State<Model>, user_id: &str) -> Result<Json<User>, NotFound<
 
 
 #[post("/api/account", format = "json", data = "<account>")]
-fn create_account(account: Json<Account>) -> Result<Json<Account>, BadRequest<String>> {
+fn create_account(state: &State<Model>, account: Json<Account>) -> Result<Json<Account>, BadRequest<String>> {
     if account.id.is_some() {
         Err(BadRequest("id must not be provided".to_string()))
-    }
+    }    
     else {
-        Ok(Json(Account {
-            id: Some(Uuid::new_v4()),
-            account_holder: account.account_holder.clone(),
-            balance: Money {
-                amount: 0,
-                currency: "USD".to_string(),
-            },
-        }))
+        state
+            .new_account(account.account_holder.clone())
+            .map(Json)
+            .map_err(|e| BadRequest(e))
     }
 }
 
 
-#[get("/api/account/<_account>")]
-fn get_account(_account: String) -> Result<Json<Account>, BadRequest<String>> {
-    // let account_id = uuid::Uuid::parse_str(&account).map_err(|e| BadRequest(e.to_string()))?;
-    Ok(Json(Account {
-        id: Some(Uuid::new_v4()),
-        account_holder: Uuid::new_v4(),
-        balance: Money {
-            amount: 0,
-            currency: "USD".to_string(),
-        },
-    }))
+#[get("/api/account/<account>")]
+fn get_account(state: &State<Model>, account: String) -> Result<Json<Account>, NotFound<String>> {
+    let readable_accounts = state.accounts.read().unwrap();
+    match readable_accounts.get(&Uuid::parse_str(&account).unwrap()) {
+        Some(account) => { Ok(account.clone().into()) },
+        None => { Err(NotFound(format!("account {} does not exist", account))) },
+    }
 }
 
 
