@@ -4,7 +4,7 @@ use rocket::{http::ContentType, local::blocking::Client};
 use rocket::http::Status;
 
 use banking::routing::rocket;
-use banking::model::{Account, Deposit, Money, User};
+use banking::model::{Account, Deposit, Money, User, Widthdrawal};
 
 
 struct TestClient {
@@ -60,6 +60,15 @@ impl TestClient {
         assert!(response.status() == Status::Ok);
         response.into_json::<Account>().unwrap()
     }
+
+    fn withdraw(&self, account: &Account, withdrawal_value: Money) -> Account {
+        let response = self.client.post("/api/withdraw")
+            .header(ContentType::JSON)
+            .json(&Widthdrawal::new(&account.id.unwrap(), withdrawal_value))
+            .dispatch();
+        assert!(response.status() == Status::Ok);
+        response.into_json::<Account>().unwrap()
+    }
 }
 
 
@@ -95,4 +104,16 @@ fn deposit_affects_balance(client: TestClient) {
     let account_after_deposit = client.deposit(&account, deposit_value.clone());
 
     assert!(account_after_deposit.balance == deposit_value);
+}
+
+
+#[rstest]
+fn withdrawal_the_whole_deposit_empties_the_acount_balance(client: TestClient) {
+    let account = client.create_account();
+    let in_out_money: Money = Money::new(10, "USD");
+
+    client.deposit(&account, in_out_money.clone());
+    let account_after_withdrawal = client.withdraw(&account, in_out_money.clone());
+
+    assert!(account_after_withdrawal.balance == Money::zero("USD"));
 }
