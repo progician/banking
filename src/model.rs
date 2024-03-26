@@ -67,7 +67,6 @@ impl Account {
 }
 
 
-
 #[derive(Serialize, Deserialize)]
 pub struct Deposit {
     pub account_id: Uuid,
@@ -131,7 +130,12 @@ impl Model {
     pub fn apply_withdraw(&self, deposit: Widthdrawal) -> Result<Account, String> {
         let mut unlocked_accounts = self.accounts.write().unwrap();
         let account = unlocked_accounts.get_mut(&deposit.account_id).ok_or("account not found")?;
-        account.balance.amount -= deposit.deposit_value.amount;
-        Ok(account.clone())
+        if account.balance.amount < deposit.deposit_value.amount {
+            Err("Insufficient funds".to_string())
+        }
+        else {
+            account.balance.amount -= deposit.deposit_value.amount;
+            Ok(account.clone())
+        }
     }
 }
