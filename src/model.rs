@@ -3,6 +3,13 @@ use std::sync::RwLock;
 use rocket::serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
+
+#[derive(Serialize, Deserialize)]
+pub struct Error {
+    pub message: String,
+}
+
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
