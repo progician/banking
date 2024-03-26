@@ -61,13 +61,17 @@ impl TestClient {
         response.into_json::<Account>().unwrap()
     }
 
-    fn withdraw(&self, account: &Account, withdrawal_value: Money) -> Account {
+    fn withdraw(&self, account: &Account, withdrawal_value: Money) -> Result<Account, String> {
         let response = self.client.post("/api/withdraw")
             .header(ContentType::JSON)
             .json(&Widthdrawal::new(&account.id.unwrap(), withdrawal_value))
             .dispatch();
-        assert!(response.status() == Status::Ok);
-        response.into_json::<Account>().unwrap()
+        if response.status() == Status::Ok {
+            Ok(response.into_json::<Account>().unwrap())
+        }
+        else {
+            Err(response.into_string().unwrap())
+        }
     }
 }
 
@@ -113,7 +117,22 @@ fn withdrawal_the_whole_deposit_empties_the_acount_balance(client: TestClient) {
     let in_out_money: Money = Money::new(10, "USD");
 
     client.deposit(&account, in_out_money.clone());
-    let account_after_withdrawal = client.withdraw(&account, in_out_money.clone());
+    let account_after_withdrawal = client.withdraw(&account, in_out_money.clone()).unwrap();
 
     assert!(account_after_withdrawal.balance == Money::zero("USD"));
+}
+
+#[rstest]
+fn account_cannot_be_overdrawn(client: TestClient) {
+    let account = client.create_account();
+
+    let deposit_value: Money = Money::new(10, "USD");
+    let withdrawal_value: Money = Money::new(100, "USD");
+
+    client.deposit(&account, deposit_value.clone());
+    match client.withdraw(&account, withdrawal_value) {
+        Ok(_) => assert!(false),
+        Err(message) => assert!(message == "Insufficient funds".to_string())
+    }
+    assert!(client.balance_of(&account) == deposit_value);
 }
