@@ -3,7 +3,7 @@ use rocket::response::status::{BadRequest, NotFound};
 use rocket::serde::json::Json;
 
 use uuid::Uuid;
-use crate::model::{Account, Deposit, Model, Money, User};
+use crate::model::{Account, Deposit, Model, User, Widthdrawal};
 
 #[get("/")]
 fn index() -> &'static str {
@@ -64,6 +64,14 @@ fn deposit(state: &State<Model>, data: Json<Deposit>) -> Result<Json<Account>, B
 }
 
 
+#[post("/api/withdraw", format="json", data="<data>")]
+fn withdraw(state: &State<Model>, data: Json<Widthdrawal>) -> Result<Json<Account>, BadRequest<String>> {
+    state
+        .apply_withdraw(data.into_inner())
+        .map(Json).map_err(|e| BadRequest(e))
+}
+
+
 pub fn rocket() -> Rocket<Build> {
     build()
         .manage(Model::new())
@@ -74,6 +82,7 @@ pub fn rocket() -> Rocket<Build> {
             get_account,
 
             deposit,
+            withdraw,
 
             index,
         ])

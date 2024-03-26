@@ -18,6 +18,22 @@ pub struct Money {
     pub currency: String,
 }
 
+impl Money {
+    pub fn new(amount: u64, currency: &str) -> Money {
+        Money {
+            amount: amount,
+            currency: currency.to_string(),
+        }
+    }
+
+    pub fn zero(currency: &str) -> Money {
+        Money {
+            amount: 0,
+            currency: currency.to_string(),
+        }
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Account {
@@ -51,7 +67,6 @@ impl Account {
 }
 
 
-
 #[derive(Serialize, Deserialize)]
 pub struct Deposit {
     pub account_id: Uuid,
@@ -67,7 +82,7 @@ impl Deposit {
     }
 }
 
-
+pub type Widthdrawal = Deposit;
 
 pub struct Model {
     pub users: RwLock<HashMap<Uuid, User>>,
@@ -110,5 +125,17 @@ impl Model {
         let account = unlocked_accounts.get_mut(&deposit.account_id).ok_or("account not found")?;
         account.balance.amount += deposit.deposit_value.amount;
         Ok(account.clone())
+    }
+
+    pub fn apply_withdraw(&self, deposit: Widthdrawal) -> Result<Account, String> {
+        let mut unlocked_accounts = self.accounts.write().unwrap();
+        let account = unlocked_accounts.get_mut(&deposit.account_id).ok_or("account not found")?;
+        if account.balance.amount < deposit.deposit_value.amount {
+            Err("Insufficient funds".to_string())
+        }
+        else {
+            account.balance.amount -= deposit.deposit_value.amount;
+            Ok(account.clone())
+        }
     }
 }
