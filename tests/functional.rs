@@ -4,7 +4,7 @@ use rocket::{http::ContentType, local::blocking::Client};
 use rocket::http::Status;
 
 use banking::routing::rocket;
-use banking::model::{Account, Deposit, Money, User, Widthdrawal};
+use banking::model::{Account, Error, Deposit, Money, User, Widthdrawal};
 
 
 struct TestClient {
@@ -70,7 +70,7 @@ impl TestClient {
             Ok(response.into_json::<Account>().unwrap())
         }
         else {
-            Err(response.into_string().unwrap())
+            Err(response.into_json::<Error>().unwrap().message)
         }
     }
 }

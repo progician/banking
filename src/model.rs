@@ -3,6 +3,24 @@ use std::sync::RwLock;
 use rocket::serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
+
+#[derive(Serialize, Deserialize)]
+pub struct Error {
+    pub message: String,
+}
+
+impl From<String> for Error {
+    fn from(value: String) -> Self {
+        Error { message: value }
+    }
+}
+
+impl From<&str> for Error {
+    fn from(value: &str) -> Self {
+        Error { message: value.to_string() }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -111,7 +129,7 @@ impl Model {
         return new_user_entry;
     }
 
-    pub fn new_account(&self, account_holder: Uuid) -> Result<Account, String> {
+    pub fn new_account(&self, account_holder: Uuid) -> Result<Account, Error> {
         self.users.read().unwrap().get(&account_holder).ok_or("account holder not found")?;
 
         let new_account = Account::new_with_id(account_holder);
@@ -120,18 +138,18 @@ impl Model {
         return Ok(new_account);
     }
 
-    pub fn apply_deposit(&self, deposit: Deposit) -> Result<Account, String> {
+    pub fn apply_deposit(&self, deposit: Deposit) -> Result<Account, Error> {
         let mut unlocked_accounts = self.accounts.write().unwrap();
         let account = unlocked_accounts.get_mut(&deposit.account_id).ok_or("account not found")?;
         account.balance.amount += deposit.deposit_value.amount;
         Ok(account.clone())
     }
 
-    pub fn apply_withdraw(&self, deposit: Widthdrawal) -> Result<Account, String> {
+    pub fn apply_withdraw(&self, deposit: Widthdrawal) -> Result<Account, Error> {
         let mut unlocked_accounts = self.accounts.write().unwrap();
         let account = unlocked_accounts.get_mut(&deposit.account_id).ok_or("account not found")?;
         if account.balance.amount < deposit.deposit_value.amount {
-            Err("Insufficient funds".to_string())
+            Err(Error{message: "Insufficient funds".to_string()})
         }
         else {
             account.balance.amount -= deposit.deposit_value.amount;
