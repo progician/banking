@@ -122,6 +122,7 @@ fn withdrawal_the_whole_deposit_empties_the_acount_balance(client: TestClient) {
     assert!(account_after_withdrawal.balance == Money::zero("USD"));
 }
 
+
 #[rstest]
 fn account_cannot_be_overdrawn(client: TestClient) {
     let account = client.create_account();
@@ -135,4 +136,20 @@ fn account_cannot_be_overdrawn(client: TestClient) {
         Err(message) => assert!(message == "Insufficient funds".to_string())
     }
     assert!(client.balance_of(&account) == deposit_value);
+}
+
+#[fixture]
+fn separate_clients() -> Vec<TestClient> {
+    vec!(TestClient::new(), TestClient::new())
+}
+
+
+#[rstest]
+fn state_is_persistent_between_instances(separate_clients: Vec<TestClient>) {
+    let account = separate_clients[0].create_account();
+
+    let deposit_value = Money::new(10, "USD");
+    let account_after_deposit = separate_clients[0].deposit(&account, deposit_value.clone());
+
+    assert!(account_after_deposit.balance == separate_clients[1].balance_of(&account));
 }
